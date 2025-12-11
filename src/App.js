@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Container,
   Paper,
@@ -16,13 +16,35 @@ import {
   Alert,
   CircularProgress,
   Grid,
+  Dialog,
+  DialogContent,
+  Zoom,
 } from '@mui/material';
 import { ThemeProvider, createTheme, rtl } from '@mui/material/styles';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import SignatureCanvas from 'react-signature-canvas';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 import { keyframes } from '@emotion/react';
+
+
+const globalTheme = createTheme({
+  components: {
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          height: '60px !important',       // גובה אחיד לכל השדות
+          alignItems: 'center',
+        },
+        input: {
+          padding: '14px !important',      // מרווח אחיד
+          lineHeight: '1.4 !important',
+        },
+      },
+    },
+  },
+});
 
 // Animations
 const dropIn = keyframes`
@@ -58,6 +80,65 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [showDevTools, setShowDevTools] = useState(false);
+  const [openDialog, setOpenDialog] = useState(false);
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setSuccess(false);
+    setFormData({
+      clientName: '',
+      birthDate: '',
+      phone: '',
+      email: '',
+      pregnant: '',
+      pregnantDetails: '',
+      skinCondition: {
+        dry: false,
+        oily: false,
+        sensitive: false,
+        normal: false,
+        combination: false,
+      },
+      skinIssues: {
+        acne: false,
+        pigmentation: false,
+        rosacea: false,
+      },
+      previousTreatments: '',
+      previousTreatmentWhere: '',
+      previousTreatmentTypes: '',
+      medications: '',
+      allergies: '',
+      chronicDiseases: '',
+      heartDisease: '',
+      heartDiseaseDetails: '',
+      bloodPressure: '',
+      bloodPressureDetails: '',
+      diabetes: '',
+      diabetesDetails: '',
+      epilepsy: '',
+      epilepsyDetails: '',
+      cancer: '',
+      cancerDetails: '',
+      hiv: '',
+      hivDetails: '',
+      bloodThinner: '',
+      consentAgreement: false,
+      signatureDate: '',
+    });
+    if (signatureRef.current) {
+      signatureRef.current.clear();
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('admin') === 'true') {
+      setShowDevTools(true);
+    }
+  }, []);
 
   const [formData, setFormData] = useState({
     // פרטים אישיים
@@ -183,37 +264,237 @@ function App() {
   };
 
   const generatePDF = async () => {
-    // צלם את הטופס המלא עם איכות נמוכה יותר
+    const originalScrollPos = window.scrollY;
+    
+    // 1. Create a clone
     const formElement = document.getElementById('form-container');
-    const canvas = await html2canvas(formElement, {
-      scale: 1, // הפחתת איכות
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: '#ffffff',
-      logging: false,
-      width: formElement.scrollWidth,
-      height: formElement.scrollHeight
+    const clone = formElement.cloneNode(true);
+
+/* -------------------------------
+   PDF FORM STYLE FIX (CLEAN & SHORT)
+----------------------------------- */
+
+// Global direction
+clone.style.direction = "rtl";
+clone.style.textAlign = "right";
+
+// Apply RTL to everything
+clone.querySelectorAll("*").forEach(el => {
+  el.style.direction = "rtl";
+  el.style.textAlign = "right";
+});
+
+/* --- Stable & Proper Label Positioning (Adjusted Version) --- */
+clone.querySelectorAll(".MuiFormControl-root").forEach(control => {
+  const label = control.querySelector(".MuiInputLabel-root");
+  const wrapper = control.querySelector(".MuiOutlinedInput-root");
+
+  if (label && wrapper) {
+    label.style.position = "absolute";
+    label.style.top = "-4px";      // was -6px → FIX for page 2
+    label.style.right = "12px";
+    label.style.background = "white";
+    label.style.padding = "0 4px";
+    label.style.fontSize = "0.83rem";
+    label.style.fontWeight = "500";
+    label.style.zIndex = "5";
+    label.style.lineHeight = "1";
+    label.style.transform = "none";
+  }
+
+  if (wrapper) {
+    wrapper.style.position = "relative";
+  }
+});
+
+/* --- Fix Section Titles (h6) spacing to avoid label collision --- */
+clone.querySelectorAll("h6").forEach(title => {
+  title.style.fontSize = "18px";
+  title.style.fontWeight = "700";
+  title.style.marginTop = "35px";
+  title.style.marginBottom = "20px"; // was 10px → fixed to avoid label overlap
+  title.style.color = "#db3c78";
+});
+
+/* --- REMOVE HEIGHT INCREASES (important!) --- */
+clone.querySelectorAll(".MuiOutlinedInput-root").forEach(box => {
+  box.style.paddingTop = "8px";     // במקום 18px — FIX
+  box.style.minHeight = "60px";    // גובה קבוע ואחיד בכל הדפים
+  box.style.display = "flex";
+  box.style.alignItems = "center";
+});
+
+
+/* --- Fix Section Titles (keep clean) --- */
+clone.querySelectorAll("h6").forEach(title => {
+  title.style.fontSize = "18px";
+  title.style.fontWeight = "700";
+  title.style.marginTop = "25px";
+  title.style.marginBottom = "10px";
+  title.style.color = "#db3c78";
+});
+
+/* --- Divider spacing (small, not too big) --- */
+clone.querySelectorAll("hr").forEach(div => {
+  div.style.margin = "20px 0";
+});
+
+/* --- Inputs text style --- */
+clone.querySelectorAll("input, textarea").forEach(input => {
+  input.style.fontSize = "15px";
+  input.style.fontWeight = "500";
+});
+
+    // 2. Initial Style Setup for Clone
+    // We set a fixed width (~A4 ratio) to ensure consistency
+    const a4WidthPx = 794; // approx 210mm at 96dpi
+    clone.style.width = `${a4WidthPx}px`;
+    clone.style.position = 'absolute';
+    clone.style.top = '-10000px'; // Hide it way off screen
+    clone.style.left = '0px';
+    clone.style.zIndex = '-9999';
+    clone.style.animation = 'none';
+    clone.style.transform = 'none';
+    clone.style.margin = '0';
+    clone.style.padding = '40px'; 
+    clone.style.background = '#ffffff';
+    clone.style.height = 'auto'; // Let it grow
+    clone.style.overflow = 'visible';
+
+    // Copy input values
+    const originalInputs = formElement.querySelectorAll('input, textarea');
+    const clonedInputs = clone.querySelectorAll('input, textarea');
+    originalInputs.forEach((input, index) => {
+      if (clonedInputs[index]) {
+        clonedInputs[index].value = input.value;
+        if (input.type === 'checkbox' || input.type === 'radio') {
+             clonedInputs[index].checked = input.checked;
+        }
+      }
     });
-    
-    const imgData = canvas.toDataURL('image/jpeg', 0.8); // JPEG עם איכות 70%
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    
-    const imgWidth = 210;
-    const pageHeight = 295;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    let heightLeft = imgHeight;
-    let position = 0;
 
-    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
+    // Copy canvas (signature)
+    const originalCanvases = formElement.querySelectorAll('canvas');
+    const clonedCanvases = clone.querySelectorAll('canvas');
+    originalCanvases.forEach((canvas, index) => {
+      if (clonedCanvases[index]) {
+        const ctx = clonedCanvases[index].getContext('2d');
+        ctx.drawImage(canvas, 0, 0);
+      }
+    });
 
-    while (heightLeft >= 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+    document.body.appendChild(clone);
+    
+  
+    // 3. Smart Page Breaks Logic — prevents splitting of section titles
+
+    const PAGE_HEIGHT = 1120;
+    let currentHeight = 0;
+
+    const formChild = clone.querySelector("form");
+    if (formChild) {
+      const children = Array.from(formChild.children);
+
+      for (let i = 0; i < children.length; i++) {
+        const child = children[i];
+
+        const style = window.getComputedStyle(child);
+        const marginTop = parseInt(style.marginTop) || 0;
+        const marginBottom = parseInt(style.marginBottom) || 0;
+        const childHeight = child.offsetHeight + marginTop + marginBottom;
+
+        // Detect section titles <h6> created by MUI Typography variant="h6"
+        const isTitle =
+          child.tagName === "H6" ||
+          child.querySelector("h6") ||
+          child.getAttribute("data-section-title") === "true";
+
+        if (isTitle) {
+          // Ensure title is always together with at least the next block
+          const next = children[i + 1];
+          const nextHeight = (next?.offsetHeight || 250) + 60;
+          const required = childHeight + nextHeight;
+
+          if (currentHeight + required > PAGE_HEIGHT) {
+            const spaceRemaining = PAGE_HEIGHT - currentHeight;
+
+            const spacer = document.createElement("div");
+            spacer.style.height = `${spaceRemaining + 20}px`;
+            spacer.style.width = "100%";
+            spacer.style.display = "block";
+
+            formChild.insertBefore(spacer, child);
+            currentHeight = 0;
+          }
+        }
+
+        // Normal breaker
+        if (currentHeight + childHeight > PAGE_HEIGHT) {
+          const spaceRemaining = PAGE_HEIGHT - currentHeight;
+
+          const spacer = document.createElement("div");
+          spacer.style.height = `${spaceRemaining + 20}px`;
+          spacer.style.width = "100%";
+          spacer.style.display = "block";
+
+          formChild.insertBefore(spacer, child);
+          currentHeight = childHeight;
+        } else {
+          currentHeight += childHeight;
+        }
+      }
     }
 
+    // Scroll to top to help html2canvas render correctly
+    window.scrollTo(0, 0);
+
+    
+    let pdf;
+
+    try {
+      const canvas = await html2canvas(clone, {
+        scale: 2, // Higher quality
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        // We let the width/height be determined by the content which we just adjusted
+      });
+      
+      const imgData = canvas.toDataURL('image/jpeg', 0.9);
+      pdf = new jsPDF('p', 'mm', 'a4');
+      
+      const pdfPageWidth = 210;
+      const pdfPageHeight = 297;
+      
+      // Calculate dimensions in PDF
+      const imgWidth = pdfPageWidth; 
+      const imgHeight = (canvas.height * pdfPageWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 0;
+      let pageIndex = 0;
+
+      // Add first page
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pdfPageHeight;
+
+      // Add subsequent pages
+      while (heightLeft > 0) {
+        position -= pdfPageHeight; // Move the image up by one page height
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pdfPageHeight;
+      }
+      
+    } catch (err) {
+      console.error("PDF Generation failed", err);
+      throw err;
+    } finally {
+      document.body.removeChild(clone);
+      window.scrollTo(0, originalScrollPos);
+    }
+    
     return pdf;
   };
 
@@ -246,9 +527,14 @@ function App() {
         client_phone: formData.phone,
         pdf_attachment: pdfBase64,
       };
-      
+      console.log('client_name', formData.clientName);
+      console.log('client_email', formData.email);
+      console.log('client_phone', formData.phone);
+
       // שליחה לשרת ה-PHP שלנו
-      const apiUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost/untitled%20folder/send-email.php';
+      const apiUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/send-email.php';
+      console.log('apiUrl',apiUrl);
+       
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -256,6 +542,8 @@ function App() {
         },
         body: JSON.stringify(templateParams),
       });
+      console.log("Sending to:", apiUrl, templateParams);
+
       
       const result = await response.json();
       
@@ -265,53 +553,7 @@ function App() {
       
       setSuccess(true);
       setLoading(false);
-      
-      // Reset form after 3 seconds
-      setTimeout(() => {
-        setFormData({
-          clientName: '',
-          birthDate: '',
-          phone: '',
-          email: '',
-          pregnant: '',
-          pregnantDetails: '',
-          skinCondition: {
-            dry: false,
-            oily: false,
-            sensitive: false,
-            normal: false,
-            combination: true,
-          },
-          skinIssues: {
-            acne: true,
-            pigmentation: true,
-            rosacea: true,
-          },
-          previousTreatments: '',
-          previousTreatmentWhere: '',
-          previousTreatmentTypes: '',
-          medications: '',
-          allergies: '',
-          chronicDiseases: '',
-          heartDisease: '',
-          heartDiseaseDetails: '',
-          bloodPressure: '',
-          bloodPressureDetails: '',
-          diabetes: '',
-          diabetesDetails: '',
-          epilepsy: '',
-          epilepsyDetails: '',
-          cancer: '',
-          cancerDetails: '',
-          hiv: '',
-          hivDetails: '',
-          bloodThinner: '',
-          consentAgreement: false,
-          signatureDate: '',
-        });
-        signatureRef.current.clear();
-        setSuccess(false);
-      }, 3000);
+      setOpenDialog(true);
       
     } catch (err) {
       console.error('Error:', err);
@@ -335,8 +577,7 @@ function App() {
           style={{ 
             maxHeight: '250px',
             borderRadius: '20px',
-            boxShadow: '0 10px 20px rgba(240, 98, 146, 0.2)',
-            marginBottom: '20px'
+
           }} 
         />
         <Typography 
@@ -346,7 +587,8 @@ function App() {
             fontWeight: 'bold', 
             color: '#424242',
             textAlign: 'center',
-            mb: 1
+            mb: 1,
+            marginTop: '-2.5rem'
           }}
         >
           טופס בריאות
@@ -355,7 +597,8 @@ function App() {
           variant="subtitle1" 
           sx={{ 
             color: '#757575',
-            textAlign: 'center'
+            textAlign: 'center',
+
           }}
         >
           אנא מלאו את הפרטים הבאים לפני הטיפול
@@ -366,7 +609,7 @@ function App() {
         elevation={0} 
         sx={{ 
           p: { xs: 3, md: 5 }, 
-          backgroundColor: '#fff', // White paper for better contrast on pink bg
+          backgroundColor: '#ffeeee', // White paper for better contrast on pink bg
           borderRadius: 4,
           boxShadow: '0 10px 40px rgba(233, 30, 99, 0.08)',
           animation: `${fadeInUp} 0.8s ease-out 0.4s both`, // Delay execution
@@ -387,11 +630,13 @@ function App() {
           </Alert>
         )}
         
-        <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
-          <Button variant="outlined" size="small" onClick={fillTestData}>
-            מילוי אוטומטי (בדיקות)
-          </Button>
-        </Box>
+        {showDevTools && (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
+            <Button variant="outlined" size="small" onClick={fillTestData}>
+              מילוי אוטומטי (בדיקות)
+            </Button>
+          </Box>
+        )}
         
         <form onSubmit={handleSubmit}>
           {/* פרטים אישיים */}
@@ -596,7 +841,7 @@ function App() {
               name="previousTreatments"
               value={formData.previousTreatments}
               onChange={handleInputChange}
-              multiline
+
               rows={2}
               sx={{ mb: 2 }}
             />
@@ -607,7 +852,7 @@ function App() {
               name="previousTreatmentWhere"
               value={formData.previousTreatmentWhere}
               onChange={handleInputChange}
-              multiline
+
               rows={2}
               sx={{ mb: 2 }}
             />
@@ -618,7 +863,7 @@ function App() {
               name="previousTreatmentTypes"
               value={formData.previousTreatmentTypes}
               onChange={handleInputChange}
-              multiline
+
               rows={2}
             />
           </Box>
@@ -639,7 +884,7 @@ function App() {
                   name="medications"
                   value={formData.medications}
                   onChange={handleInputChange}
-                  multiline
+
                   rows={2}
                 />
               </Grid>
@@ -651,7 +896,7 @@ function App() {
                   name="allergies"
                   value={formData.allergies}
                   onChange={handleInputChange}
-                  multiline
+
                   rows={2}
                 />
               </Grid>
@@ -663,7 +908,7 @@ function App() {
                   name="chronicDiseases"
                   value={formData.chronicDiseases}
                   onChange={handleInputChange}
-                  multiline
+
                   rows={2}
                 />
               </Grid>
@@ -827,6 +1072,56 @@ function App() {
           </Box>
         </form>
       </Paper>
+
+      <Dialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        TransitionComponent={Zoom}
+        keepMounted
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 4,
+            p: 2,
+            textAlign: 'center',
+            background: 'linear-gradient(135deg, #fff 0%, #fff0f5 100%)',
+          }
+        }}
+      >
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', pt: 4, pb: 4 }}>
+          <CheckCircleOutlineIcon 
+            sx={{ 
+              fontSize: 80, 
+              color: '#4caf50', 
+              mb: 2, 
+              animation: `${dropIn} 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)` 
+            }} 
+          />
+          <Typography variant="h4" component="h2" gutterBottom sx={{ fontWeight: 'bold', color: '#333' }}>
+            תודה רבה!
+          </Typography>
+          <Typography variant="h6" sx={{ color: '#666', mb: 3 }}>
+            הטופס נשלח בהצלחה
+          </Typography>
+          <Button 
+            variant="contained" 
+            onClick={handleCloseDialog}
+            size="large"
+            sx={{ 
+              borderRadius: 50, 
+              px: 4, 
+              py: 1,
+              fontSize: '1.2rem',
+              background: 'linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)',
+              boxShadow: '0 3px 5px 2px rgba(255, 105, 135, .3)',
+              textTransform: 'none'
+            }}
+          >
+            סגירה
+          </Button>
+        </DialogContent>
+      </Dialog>
     </Container>
   );
 }
