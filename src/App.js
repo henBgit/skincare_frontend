@@ -535,14 +535,16 @@ clone.querySelectorAll("input, textarea").forEach(input => {
       const apiUrl = process.env.REACT_APP_API_BASE_URL;
       console.log('apiUrl',apiUrl);
        
-      const response = await fetch(apiUrl, {
+      const response = await fetch(`${apiUrl}/send-email.php`, {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(templateParams),
       });
-      console.log("Sending to:", apiUrl, templateParams);
+      console.log("Sending to:", `${apiUrl}/send-email.php`, templateParams);
+
 
       
       const result = await response.json();
