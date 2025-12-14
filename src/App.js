@@ -385,6 +385,16 @@ clone.querySelectorAll("input, textarea").forEach(input => {
 
     document.body.appendChild(clone);
     
+
+    // 🔥 RESET כל ה-transforms כדי למנוע PDF עקום
+    clone.querySelectorAll('*').forEach(el => {
+      el.style.transform = 'none';
+      el.style.translate = 'none';
+      el.style.rotate = '0deg';
+      el.style.scale = '1';
+      el.style.willChange = 'auto';
+    });
+      
   
     // 3. Smart Page Breaks Logic — prevents splitting of section titles
 
@@ -452,15 +462,13 @@ clone.querySelectorAll("input, textarea").forEach(input => {
     let pdf;
 
     try {
+
       const canvas = await html2canvas(clone, {
-        scale: 2, // Higher quality
+        scale: window.devicePixelRatio || 1,
         useCORS: true,
-        allowTaint: true,
         backgroundColor: '#ffffff',
-        logging: false,
-        // We let the width/height be determined by the content which we just adjusted
       });
-      
+
       const imgData = canvas.toDataURL('image/jpeg', 0.9);
       pdf = new jsPDF('p', 'mm', 'a4');
       
@@ -544,8 +552,6 @@ clone.querySelectorAll("input, textarea").forEach(input => {
         body: JSON.stringify(templateParams),
       });
       console.log("Sending to:", `${apiUrl}/send-email.php`, templateParams);
-
-
       
       const result = await response.json();
       
@@ -865,7 +871,6 @@ clone.querySelectorAll("input, textarea").forEach(input => {
               name="previousTreatmentTypes"
               value={formData.previousTreatmentTypes}
               onChange={handleInputChange}
-
               rows={2}
             />
           </Box>
