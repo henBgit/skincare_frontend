@@ -688,7 +688,7 @@ clone.querySelectorAll("input, textarea").forEach(input => {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="תאריך מילוי הטופס"
+                  label=כתובת דוא״ל"
                   name="email"
                   type="email"
                   value={formData.email}
