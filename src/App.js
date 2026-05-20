@@ -126,6 +126,12 @@ function App() {
       bloodThinner: '',
       consentAgreement: false,
       signatureDate: '',
+      smoking: '',
+      profession: '',
+      thyroidProblems: '',
+      iodineAllergy: '',
+      regularPeriod: '',
+      usesSunscreen: '',
     });
     if (signatureRef.current) {
       signatureRef.current.clear();
@@ -150,6 +156,12 @@ function App() {
     // מידע רפואי
     pregnant: '',
     pregnantDetails: '',
+    smoking: '',
+    profession: '',
+    thyroidProblems: '',
+    iodineAllergy: '',
+    regularPeriod: '',
+    usesSunscreen: '',
     
     // מצב העור
     skinCondition: {
@@ -583,7 +595,7 @@ clone.querySelectorAll("input, textarea").forEach(input => {
           src="/Web_Photo_Editor.jpg" 
           alt="SKINCARE SALON" 
           style={{ 
-            maxHeight: '250px',
+            maxHeight: '280px',
             borderRadius: '20px',
 
           }} 
@@ -596,7 +608,7 @@ clone.querySelectorAll("input, textarea").forEach(input => {
             color: '#424242',
             textAlign: 'center',
             mb: 1,
-            marginTop: '-2.5rem'
+            marginTop: '-3rem'
           }}
         >
           טופס בריאות
@@ -694,6 +706,15 @@ clone.querySelectorAll("input, textarea").forEach(input => {
                   value={formData.email}
                   onChange={handleInputChange}
                   required
+                />
+              </Grid>
+                <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="מקצוע"
+                  name="profession"
+                  value={formData.profession}
+                  onChange={handleInputChange}
                 />
               </Grid>
             </Grid>
@@ -994,6 +1015,81 @@ clone.querySelectorAll("input, textarea").forEach(input => {
                   onChange={handleInputChange}
                 />
               </Grid>
+
+              <Grid item xs={12}>
+            <FormControl component="fieldset">
+              <FormLabel>מעשנת?</FormLabel>
+              <RadioGroup
+                name="smoking"
+                value={formData.smoking}
+                onChange={handleInputChange}
+                row
+              >
+                <FormControlLabel value="yes" control={<Radio />} label="כן" />
+                <FormControlLabel value="no" control={<Radio />} label="לא" />
+              </RadioGroup>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12}>
+            <FormControl component="fieldset">
+              <FormLabel>האם קיימות בעיות בבלוטת התריס?</FormLabel>
+              <RadioGroup
+                name="thyroidProblems"
+                value={formData.thyroidProblems}
+                onChange={handleInputChange}
+                row
+              >
+                <FormControlLabel value="yes" control={<Radio />} label="כן" />
+                <FormControlLabel value="no" control={<Radio />} label="לא" />
+              </RadioGroup>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12}>
+            <FormControl component="fieldset">
+              <FormLabel>אלרגיה ליוד?</FormLabel>
+              <RadioGroup
+                name="iodineAllergy"
+                value={formData.iodineAllergy}
+                onChange={handleInputChange}
+                row
+              >
+                <FormControlLabel value="yes" control={<Radio />} label="כן" />
+                <FormControlLabel value="no" control={<Radio />} label="לא" />
+              </RadioGroup>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12}>
+            <FormControl component="fieldset">
+              <FormLabel>מחזור סדיר?</FormLabel>
+              <RadioGroup
+                name="regularPeriod"
+                value={formData.regularPeriod}
+                onChange={handleInputChange}
+                row
+              >
+                <FormControlLabel value="yes" control={<Radio />} label="כן" />
+                <FormControlLabel value="no" control={<Radio />} label="לא" />
+              </RadioGroup>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12}>
+            <FormControl component="fieldset">
+              <FormLabel>האם את משתמשת בקרם הגנה באופן קבוע?</FormLabel>
+              <RadioGroup
+                name="usesSunscreen"
+                value={formData.usesSunscreen}
+                onChange={handleInputChange}
+                row
+              >
+                <FormControlLabel value="yes" control={<Radio />} label="כן" />
+                <FormControlLabel value="no" control={<Radio />} label="לא" />
+              </RadioGroup>
+            </FormControl>
+          </Grid>
             </Grid>
           </Box>
 
